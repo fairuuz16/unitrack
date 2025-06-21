@@ -1,29 +1,28 @@
-package com.example.unitrack
+package com.example.unitrack.ui.components
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,14 +31,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.unitrack.ui.theme.UniTrackTheme
-import java.time.DayOfWeek
+import com.example.unitrack.data.model.Course
+import com.example.unitrack.data.model.Task
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -48,360 +45,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
-import java.util.Locale
-import java.util.UUID
-
-data class Course(
-    val id: String = UUID.randomUUID().toString(),
-    val name: String,
-    val lecturer: String,
-    val schedule: String,
-    val dayOfWeek: Int,
-    val time: String
-)
-
-data class Task(
-    val id: String = UUID.randomUUID().toString(),
-    val courseId: String,
-    val title: String,
-    val deadline: LocalDateTime,
-    var isCompleted: Boolean = false
-)
-
-sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
-    object Calendar : Screen("calendar", "Kalender", Icons.Default.CalendarToday)
-}
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            UniTrackTheme {
-                UniTrackApp()
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun UniTrackApp() {
-    val courses = remember { mutableStateListOf<Course>() }
-    val tasks = remember { mutableStateListOf<Task>() }
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Dashboard) }
-    var showAddCourseDialog by remember { mutableStateOf(false) }
-    var showEditCourseDialog by remember { mutableStateOf<Course?>(null) }
-    var showAddTaskDialog by remember { mutableStateOf<Course?>(null) }
-    var showEditTaskDialog by remember { mutableStateOf<Task?>(null) }
-
-    LaunchedEffect(Unit) {
-        if (courses.isEmpty()) {
-            val pbm = Course(
-                name = "Pemrograman Perangkat Bergerak",
-                lecturer = "Fajar Baskoro, S.Kom., M.T.",
-                schedule = "Senin, 13.30",
-                dayOfWeek = 1, // Senin
-                time = "13.30"
-            )
-            val pbo = Course(
-                name = "Pemrograman Jaringan",
-                lecturer = "Royyana Muslim Ijtihadie, S.Kom.,M.Kom., Ph.D.",
-                schedule = "Selasa, 10.00",
-                dayOfWeek = 2, // Selasa
-                time = "13:00"
-            )
-            val math = Course(
-                name = "Perancangan dan Analisis Algoritma",
-                lecturer = "Misbakhul Munir Irfan Subakti, S.Kom., M.Sc.",
-                schedule = "Rabu, 07.00",
-                dayOfWeek = 3, // Rabu
-                time = "10:00"
-            )
-            courses.addAll(listOf(pbm, pbo, math))
-            tasks.add(Task(courseId = pbm.id, title = "Buat Aplikasi Catatan", deadline = LocalDate.now().plusDays(5).atTime(23, 59)))
-            tasks.add(Task(courseId = pbm.id, title = "Implementasi API", deadline = LocalDate.now().plusDays(12).atTime(18, 0), isCompleted = true))
-            tasks.add(Task(courseId = pbo.id, title = "Desain Final Project", deadline = LocalDate.now().plusDays(7).atTime(23, 59)))
-        }
-    }
-
-    val gradientColors = listOf(
-        Color(0xFF667eea),
-        Color(0xFF764ba2),
-        Color(0xFFf093fb)
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = gradientColors,
-                    startY = 0f,
-                    endY = Float.POSITIVE_INFINITY
-                )
-            )
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            currentScreen.title,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent
-                    )
-                )
-            },
-            bottomBar = {
-                NavigationBar(
-                    containerColor = Color.White.copy(alpha = 0.95f),
-                    modifier = Modifier.shadow(8.dp)
-                ) {
-                    val screens = listOf(Screen.Dashboard, Screen.Calendar)
-                    screens.forEach { screen ->
-                        NavigationBarItem(
-                            icon = {
-                                Icon(
-                                    screen.icon,
-                                    contentDescription = screen.title,
-                                    tint = if (currentScreen == screen) Color(0xFF667eea) else Color.Gray
-                                )
-                            },
-                            label = {
-                                Text(
-                                    screen.title,
-                                    color = if (currentScreen == screen) Color(0xFF667eea) else Color.Gray,
-                                    fontWeight = if (currentScreen == screen) FontWeight.Bold else FontWeight.Normal
-                                )
-                            },
-                            selected = currentScreen == screen,
-                            onClick = { currentScreen = screen },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = Color(0xFF667eea),
-                                selectedTextColor = Color(0xFF667eea),
-                                indicatorColor = Color(0xFF667eea).copy(alpha = 0.1f)
-                            )
-                        )
-                    }
-                }
-            },
-            floatingActionButton = {
-                if (currentScreen == Screen.Dashboard) {
-                    FloatingActionButton(
-                        onClick = { showAddCourseDialog = true },
-                        containerColor = Color.White,
-                        contentColor = Color(0xFF667eea),
-                        modifier = Modifier.shadow(8.dp, CircleShape)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Tambah Mata Kuliah")
-                    }
-                }
-            }
-        ) { paddingValues ->
-            when (currentScreen) {
-                Screen.Dashboard -> {
-                    DashboardScreen(
-                        courses = courses,
-                        tasks = tasks,
-                        paddingValues = paddingValues,
-                        onAddTaskClicked = { course -> showAddTaskDialog = course },
-                        onEditCourseClicked = { course -> showEditCourseDialog = course },
-                        onToggleTask = { taskToToggle ->
-                            val taskIndex = tasks.indexOfFirst { it.id == taskToToggle.id }
-                            if (taskIndex != -1) {
-                                val updatedTask = tasks[taskIndex].copy(isCompleted = !tasks[taskIndex].isCompleted)
-                                tasks[taskIndex] = updatedTask
-                            }
-                        },
-                        onTaskClicked = { taskToEdit ->
-                            showEditTaskDialog = taskToEdit
-                        }
-                    )
-                }
-                Screen.Calendar -> {
-                    CalendarScreen(
-                        courses = courses,
-                        tasks = tasks,
-                        paddingValues = paddingValues
-                    )
-                }
-            }
-        }
-    }
-
-    if (showAddCourseDialog) {
-        AddCourseDialog(
-            onDismiss = { showAddCourseDialog = false },
-            onAddCourse = { name, lecturer, schedule, dayOfWeek, time ->
-                courses.add(Course(
-                    name = name,
-                    lecturer = lecturer,
-                    schedule = schedule,
-                    dayOfWeek = dayOfWeek,
-                    time = time
-                ))
-                showAddCourseDialog = false
-            }
-        )
-    }
-
-    showEditCourseDialog?.let { course ->
-        EditCourseDialog(
-            course = course,
-            onDismiss = { showEditCourseDialog = null },
-            onEditCourse = { updatedCourse ->
-                val index = courses.indexOfFirst { it.id == updatedCourse.id }
-                if (index != -1) {
-                    courses[index] = updatedCourse
-                }
-                showEditCourseDialog = null
-            },
-            onDeleteCourse = { courseToDelete ->
-                courses.remove(courseToDelete)
-                tasks.removeAll { it.courseId == courseToDelete.id }
-                showEditCourseDialog = null
-            }
-        )
-    }
-
-    showAddTaskDialog?.let { course ->
-        AddTaskDialog(
-            courseName = course.name,
-            onDismiss = { showAddTaskDialog = null },
-            onAddTask = { title, deadline ->
-                tasks.add(Task(courseId = course.id, title = title, deadline = deadline))
-                showAddTaskDialog = null
-            }
-        )
-    }
-
-    showEditTaskDialog?.let { task ->
-        val courseName = courses.find { it.id == task.courseId }?.name ?: "N/A"
-        EditTaskDialog(
-            task = task,
-            courseName = courseName,
-            onDismiss = { showEditTaskDialog = null },
-            onEditTask = { updatedTask ->
-                val index = tasks.indexOfFirst { it.id == updatedTask.id }
-                if (index != -1) {
-                    tasks[index] = updatedTask
-                }
-                showEditTaskDialog = null
-            },
-            onDeleteTask = { taskToDelete ->
-                tasks.remove(taskToDelete)
-                showEditTaskDialog = null
-            }
-        )
-    }
-}
-
-@Composable
-fun DashboardScreen(
-    courses: List<Course>,
-    tasks: List<Task>,
-    paddingValues: PaddingValues,
-    onAddTaskClicked: (Course) -> Unit,
-    onEditCourseClicked: (Course) -> Unit,
-    onToggleTask: (Task) -> Unit,
-    onTaskClicked: (Task) -> Unit
-) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        item {
-            AnimatedVisibility(
-                visible = true,
-                enter = slideInVertically(
-                    initialOffsetY = { -40 },
-                    animationSpec = tween(600)
-                ) + fadeIn(animationSpec = tween(600))
-            ) {
-                StatisticsCard(tasks = tasks)
-            }
-        }
-
-        item {
-            Text(
-                "Mata Kuliah Anda",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 4.dp, top = 8.dp)
-            )
-        }
-
-        if (courses.isEmpty()) {
-            item {
-                EmptyState()
-            }
-        } else {
-            items(courses, key = { it.id }) { course ->
-                val index = courses.indexOf(course)
-                AnimatedVisibility(
-                    visible = true,
-                    enter = slideInVertically(
-                        initialOffsetY = { 60 },
-                        animationSpec = tween(600, delayMillis = index * 100)
-                    ) + fadeIn(animationSpec = tween(600, delayMillis = index * 100))
-                ) {
-                    CourseItem(
-                        course = course,
-                        tasks = tasks.filter { it.courseId == course.id },
-                        onAddTaskClicked = { onAddTaskClicked(course) },
-                        onEditCourseClicked = { onEditCourseClicked(course) },
-                        onToggleTask = onToggleTask,
-                        onTaskClicked = onTaskClicked
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CalendarScreen(
-    courses: List<Course>,
-    tasks: List<Task>,
-    paddingValues: PaddingValues
-) {
-    var selectedDate by remember { mutableStateOf(LocalDate.now()) }
-    var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        CalendarWidget(
-            currentMonth = currentMonth,
-            selectedDate = selectedDate,
-            courses = courses,
-            tasks = tasks,
-            onDateSelected = { selectedDate = it },
-            onMonthChanged = { currentMonth = it }
-        )
-
-        ScheduleForDate(
-            date = selectedDate,
-            courses = courses,
-            tasks = tasks
-        )
-    }
-}
+import java.util.*
 
 @Composable
 fun CalendarWidget(
@@ -1595,13 +1239,5 @@ fun TimePickerDialog(
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    UniTrackTheme {
-        UniTrackApp()
     }
 }
