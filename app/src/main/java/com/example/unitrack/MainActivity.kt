@@ -606,7 +606,7 @@ fun ScheduleForDate(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
-                        text = "Tugas dengan Deadline",
+                        text = "Deadline Hari Ini",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF2D3748)
@@ -1314,7 +1314,7 @@ fun AddTaskDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Tambah Tugas untuk", style = MaterialTheme.typography.titleLarge)
+                Text("Tambah Tugas", style = MaterialTheme.typography.titleLarge)
                 Text(courseName, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color(0xFF667eea))
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Judul Tugas") })
 
